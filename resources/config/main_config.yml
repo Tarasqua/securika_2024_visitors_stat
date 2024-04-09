@@ -1,0 +1,4 @@
+# Раз во сколько минут обновлять гистограмму
+UPDATE_STATISTICS_DELAY: 0.5
+# YOLO confidence
+YOLO_CONF: 0.2

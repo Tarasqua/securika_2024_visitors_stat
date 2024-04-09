@@ -33,14 +33,14 @@ class VisitorsStatistics:
         self.roi = roi
         logger.success('ROI successfully set')
 
-    def is_inside_roi(self, bbox: np.array) -> bool:
+    def is_inside_roi(self, detection: Results) -> bool:
         """
-        Проверка на то, что человек находится в области ROI.
-        :param bbox: Координаты ббокса в формате [x, y, w, h].
+        Проверка на то, что человек находится в области ROI по центроиду его ббокса.
+        :param detection: YOLO detection.
         :return: Внутри или нет.
         """
-        x, y, w, h = bbox
-        return cv2.pointPolygonTest(self.roi, (x + w / 2, y + h / 2), False) >= 0
+        centroid = np.array([(bbox := detection.boxes.xyxy.numpy()[0])[:-2], bbox[-2:]]).sum(axis=0) / 2
+        return cv2.pointPolygonTest(self.roi, centroid, False) >= 0
 
     def update_visitors(self, detections: Results) -> None:
         """
@@ -49,9 +49,9 @@ class VisitorsStatistics:
         :return: None.
         """
         # находим id людей на текущем кадре, которые лежат в области ROI
-        cur_frame_ids = np.array([id_.numpy()[0] for det in detections
-                                  if (id_ := det.boxes.id) is not None
-                                  and self.is_inside_roi(det.boxes.xywh.numpy()[0])])
+        cur_frame_ids = np.array([
+            id_.numpy()[0] for det in detections
+            if (id_ := det.boxes.id) is not None and self.is_inside_roi(det)])
         self.visitors_ids = np.append(
             self.visitors_ids,  # добавляем к списку уже замеченных людей
             cur_frame_ids[~np.in1d(cur_frame_ids, self.visitors_ids)])  # тех, кого видим впервые
